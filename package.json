@@ -1,0 +1,24 @@
+{
+  "name": "ppplz-server",
+  "version": "1.2.0",
+  "private": true,
+  "description": "ppplz server application",
+  "main": "ppplz-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "osu",
+    "pp",
+    "application"
+  ],
+  "author": "Ferdi265 <theferdi265@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "osu-ppplz": ">=1.0",
+    "osu-irc": ">=1.0",
+    "optimist": ">=0.6.1",
+    "colorful": ">=2.1",
+    "ppplz-format": ">=1.0"
+  }
+}
