@@ -15,10 +15,10 @@
   "author": "Ferdi265 <theferdi265@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "osu-ppplz": ">=1.0",
+    "osu-ppplz": ">=1.2.1",
     "osu-irc": ">=1.0",
     "optimist": ">=0.6.1",
     "colorful": ">=2.1",
-    "ppplz-format": ">=1.0"
+    "ppplz-format": ">=1.0.2"
   }
 }

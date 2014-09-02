@@ -97,7 +97,7 @@ var //Requires
 				modeName;
 			if (msgparts[0] === '!ppplz' || msgparts[0] === '!pp') {
 				log(time(), color('!ppplz command received from ', 3) + color(msg.from, 7));
-				if (msgparts[1] === 'osu' === msgparts[1] === 'osu!') {
+				if (msgparts[1] === 'osu' || msgparts[1] === 'osu!') {
 					mode = ppplz.Modes.osu;
 				} else if (msgparts[1] === 'taiko' || msgparts[1] === 'Taiko') {
 					mode = ppplz.Modes.taiko;
@@ -117,7 +117,7 @@ var //Requires
 				ppplz.lastScore(msg.from, mode, format.score);
 			} else if (msgparts[0] === '!watch' || msgparts[0] === '!w') {
 				log(time(), color('!watch command received from ', 3) + color(msg.from, 7));
-				if (msgparts[1] === 'osu' === msgparts[1] === 'osu!') {
+				if (msgparts[1] === 'osu' || msgparts[1] === 'osu!') {
 					mode = ppplz.Modes.osu;
 					modeName = 'osu!';
 				} else if (msgparts[1] === 'taiko' || msgparts[1] === 'Taiko') {
