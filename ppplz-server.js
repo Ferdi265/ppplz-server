@@ -15,6 +15,9 @@ var //Requires
 	decolor = function (str) {
 		return str.replace(/\u001b\[3\dm/g, '').replace(/\u001b\[0m/g, '');
 	},
+	delink = function (str) {
+		return str.replace(/\[.+? (.+)\]/g, '$1');
+	},
 	padleft = function (num, digits) {
 		return Array(digits -num.toFixed(0).length + 1).join('0') + String(num);
 	},
@@ -94,7 +97,8 @@ var //Requires
 			var format,
 				msgparts = msg.message.split(' '),
 				mode,
-				modeName;
+				modeName,
+				tries = false;
 			if (msgparts[0] === '!ppplz' || msgparts[0] === '!pp') {
 				log(time(), color('!ppplz command received from ', 3) + color(msg.from, 7));
 				if (msgparts[1] === 'osu' || msgparts[1] === 'osu!') {
@@ -109,14 +113,20 @@ var //Requires
 					mode = ppplz.Modes.osu;
 				}
 				format = ppplzFormat(ppplz, {
-					color: true
+					color: true,
+					fails: true,
+					link: true
 				}, function (str) {
 					irc.send(msg.from, decolor(str));
-					log(time(), fromUser(msg.from), str);
+					log(time(), fromUser(msg.from), delink(str));
 				});
-				ppplz.lastScore(msg.from, mode, format.score);
+				ppplz.lastScore(msg.from, mode, format);
 			} else if (msgparts[0] === '!watch' || msgparts[0] === '!w') {
 				log(time(), color('!watch command received from ', 3) + color(msg.from, 7));
+				if (msgparts[1] === 'tries') {
+					tries = true;
+					msgparts[1] = msgparts[2];
+				}
 				if (msgparts[1] === 'osu' || msgparts[1] === 'osu!') {
 					mode = ppplz.Modes.osu;
 					modeName = 'osu!';
@@ -134,12 +144,14 @@ var //Requires
 					modeName = 'osu!';
 				}
 				format = ppplzFormat(ppplz, {
-					color: true
+					color: true,
+					fails: tries,
+					link: true
 				}, function (str) {
 					irc.send(msg.from, decolor(str));
-					log(time(), fromUser(msg.from), str);
+					log(time(), fromUser(msg.from), delink(str));
 				});
-				ppplz.watch(msg.from, mode, format.watch);
+				ppplz.watch(msg.from, mode, format);
 				irc.send(msg.from, 'Watching. Waiting for ' + modeName + ' plays...');
 				log(time(), fromUser(msg.from), color('Watching. Waiting for ' + modeName + ' plays...', 3));
 			} else if (msgparts[0] === '!unwatch' || msgparts[0] === '!uw') {
