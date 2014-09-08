@@ -16,7 +16,7 @@ var //Requires
 		return str.replace(/\u001b\[3\dm/g, '').replace(/\u001b\[0m/g, '');
 	},
 	delink = function (str) {
-		return str.replace(/\[.+? (.+)\]/g, '$1');
+		return str.replace(/\[.+? (.+?)\]/g, '$1');
 	},
 	padleft = function (num, digits) {
 		return Array(digits -num.toFixed(0).length + 1).join('0') + String(num);
@@ -108,9 +108,27 @@ var //Requires
 	},
 	init = function (user, key, passwd) {
 		var irc = osuirc(user, passwd),
-			ppplz = osuppplz(key);
+			ppplz = osuppplz(key),
+			onlineStatus = 'offline',
+			onlineMsg = '',
+			onlineTimeout = null,
+			refreshOnline = function () {
+				if (onlineTimeout) {
+					clearTimeout(onlineTimeout);
+				}
+				onlineTimeout = setTimeout(function () {
+					onlineStatus = 'away';
+					onlineTimeout = setTimeout(function () {
+						onlineStatus = 'offline';
+						onlineTimeout = null;
+					}, 1000 * 60 * 15);
+				}, 1000 * 60 * 15);
+			};
 		irc.on('ready', function () {
 			log(time(), color('Connected to Bancho.', 3));
+		});
+		irc.on('error', function (err) {
+			log(time(), color('Error: ' + JSON.stringify(err), 1));
 		});
 		irc.on('message', function (msg) {
 			var format,
@@ -120,6 +138,9 @@ var //Requires
 				watching,
 				userName,
 				tries = false;
+			if (msg.from === user) {
+				refreshOnline();
+			}
 			if (msgparts[0] === '!ppplz' || msgparts[0] === '!pp') {
 				log(time(), color('!ppplz command received from ', 3) + color(msg.from, 7));
 				if (msgparts[1] === 'user' && msgparts[2] && msg.from === user) {
@@ -188,7 +209,12 @@ var //Requires
 					irc.send(userName, 'Error, already watching.');
 					log(time(), fromUser(userName), color('Error, already watching', 1));
 				} else {
-					ppplz.watch(userName, mode, format);
+					ppplz.watch(userName, mode, function () {
+						if (msg.from === user) {
+							refreshOnline();
+						}
+						format.apply(undefined, arguments);
+					});
 					irc.send(userName, 'Watching. Waiting for ' + modeName + ' plays...');
 					log(time(), fromUser(userName), color('Watching. Waiting for ' + modeName + ' plays...', 3));
 				}
@@ -218,6 +244,34 @@ var //Requires
 					irc.send(msg.from, watching.length + ' people are using !watch right now.');
 					log(time(), fromUser(msg.from), color(watching.length, 7) + color(' people are using !watch right now.', 3));
 				}
+			} else if (msgparts[0] === '!status' || msgparts[0] === '!s') {
+				log(time(), color('!status command received from ', 3) + color(msg.from, 7));
+				if (msgparts[1] === 'set' && msgparts[2] && msg.from === user) {
+					onlineStatus = msgparts[2];
+					if (msgparts[3]) {
+						onlineMsg = msgparts.slice(3).join(' ');
+					}
+					irc.send(msg.from, 'Status set to "' + onlineStatus + '", Message set to "' + onlineMsg + '"');
+					log(time(), fromUser(msg.from), color('Status set to ', 3) + color(onlineStatus, 7) + color(', Message set to ', 3) + color(onlineMsg, 7));
+				} else if (msgparts[1] === 'get' && msg.from === user) {
+					irc.send(msg.from, 'Status is "' + onlineStatus + '", Message is "' + onlineMsg + '"');
+					log(time(), fromUser(msg.from), color('Status is ', 3) + color(onlineStatus, 7) + color(', Message is ', 3) + color(onlineMsg, 7));
+				} else {
+					if (onlineStatus === 'away') {
+						irc.send(msg.from, 'I\'m online, real ' + user + ' is too, but he is probably doing some other Stuff.' + onlineStatus + ': ' + onlineMsg);
+						log(time(), fromUser(msg.from), color('I\'m online, real ', 3) + color(user, 7) + color(' is too, but he is probably doing some other Stuff. ', 3) + color(onlineStatus, 7) + color(': ', 3) + color(onlineMsg, 7));
+					} else if (onlineStatus === 'offline') {
+						irc.send(msg.from, 'I\'m online, but my non-robot version is not. If you want to talk, check back later.');
+						log(time(), fromUser(msg.from), color('I\'m online, but my non-robot version is not. If you want to talk, check back later.', 3));
+					} else {
+						irc.send(msg.from, 'I\'m online, real ' + user + ' is too. Status: ' + onlineStatus + ': ' + onlineMsg);
+						log(time(), fromUser(msg.from), color('I\'m online, real ', 3) + color(user, 7) + color(' is too. Status: ', 3) + color(onlineStatus, 7) + color(': ', 3) + color(onlineMsg, 7));
+					}
+				}
+			} else if (msgparts[0] === '!help' || msgparts[0] === '!h') {
+				log(time(), color('!help command received from ', 3) + color(msg.from, 7));
+				irc.send(msg.from, 'Need help? The official reddit thread of this bot is [http://www.reddit.com/r/osugame/comments/2f74bw/i_wrote_an_osu_pp_bot_early_beta/ here].');
+				log(time(), fromUser(msg.from), color('Need help? The official reddit thread of this bot is ', 3) + color('here', 7) + color('.', 3));
 			}
 		});
 	},
