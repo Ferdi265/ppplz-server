@@ -118,9 +118,11 @@ var //Requires
 				}
 				onlineTimeout = setTimeout(function () {
 					onlineStatus = 'away';
+					log(time(), color(user, 7) + color(' is now away.', 3));
 					onlineTimeout = setTimeout(function () {
 						onlineStatus = 'offline';
 						onlineTimeout = null;
+						log(time(), color(user, 7) + color('is now offline.', 3));
 					}, 1000 * 60 * 15);
 				}, 1000 * 60 * 15);
 			};

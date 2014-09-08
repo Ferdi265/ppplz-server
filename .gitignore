@@ -1,6 +1,5 @@
 #Ignore installed modules
 /node_modules
 /cfg.json
-/log.txt
-/log*.txt
+/*.txt
 /debug.txt
