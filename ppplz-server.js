@@ -110,27 +110,41 @@ var //Requires
 		var irc = osuirc(user, passwd),
 			ppplz = osuppplz(key),
 			onlineStatus = 'offline',
-			onlineMsg = '',
+			onlineMsg = 'Playing some osu! :D',
+			currentStatus,
 			onlineTimeout = null,
-			refreshOnline = function () {
+			timeoutStatus = function () {
+				var args = Array.prototype.slice.call(arguments),
+					newStatus = args.shift();
+				if (onlineStatus !== newStatus) {
+					onlineStatus = newStatus;
+					log(time(), color(user, 7) + color('\'s Status is now "' + onlineStatus + '"', 3));
+				}
 				if (onlineTimeout) {
 					clearTimeout(onlineTimeout);
 				}
-				onlineTimeout = setTimeout(function () {
-					onlineStatus = 'away';
-					log(time(), color(user, 7) + color(' is now away.', 3));
+				if (args.length > 0) {
 					onlineTimeout = setTimeout(function () {
-						onlineStatus = 'offline';
-						onlineTimeout = null;
-						log(time(), color(user, 7) + color('is now offline.', 3));
+						refreshStatus.apply(undefined, args);
 					}, 1000 * 60 * 15);
-				}, 1000 * 60 * 15);
+				}
+			},
+			refreshOnline = function (newStatus) {
+				newStatus = newStatus || currentStatus || 'online';
+				currentStatus = newStatus;
+				timeoutStatus(newStatus, 'away', 'offline');
 			};
 		irc.on('ready', function () {
 			log(time(), color('Connected to Bancho.', 3));
 		});
 		irc.on('error', function (err) {
-			log(time(), color('Error: ' + JSON.stringify(err), 1));
+			if (err.cmd === 'ERR_NOSUCHNICK') {
+				log(time(), color('Error: User already offline.', 1));
+			} else {
+				log(time(), color('Fatal Error: ' + JSON.stringify(err), 1));
+				irc.stop();
+				process.exit(1);
+			}
 		});
 		irc.on('message', function (msg) {
 			var format,
@@ -139,141 +153,194 @@ var //Requires
 				modeName,
 				watching,
 				userName,
-				tries = false;
-			if (msg.from === user) {
-				refreshOnline();
-			}
-			if (msgparts[0] === '!ppplz' || msgparts[0] === '!pp') {
-				log(time(), color('!ppplz command received from ', 3) + color(msg.from, 7));
-				if (msgparts[1] === 'user' && msgparts[2] && msg.from === user) {
-					userName = msgparts[2];
-					msgparts.splice(1, 2);
-				} else {
-					userName = msg.from;
+				filter = '';
+			msgparts[1] = msgparts[1] || '';
+			msgparts[2] = msgparts[2] || '';
+			if (msgparts[0].slice(0, 1) === '!') {
+				if (msg.from === user) {
+					refreshOnline();
 				}
-				if (msgparts[1] === 'osu' || msgparts[1] === 'osu!') {
-					mode = ppplz.Modes.osu;
-				} else if (msgparts[1] === 'taiko' || msgparts[1] === 'Taiko') {
-					mode = ppplz.Modes.taiko;
-				} else if (msgparts[1] === 'ctb' || msgparts[1] === 'CtB') {
-					mode = ppplz.Modes.CtB;
-				} else if (msgparts[1] === 'osumania' || msgparts[1] === 'osu!mania') {
-					mode = ppplz.Modes.osumania;
-				} else {
-					mode = ppplz.Modes.osu;
-				}
-				format = ppplzFormat(ppplz, {
-					color: true,
-					fails: true,
-					link: true
-				}, function (str) {
-					irc.send(userName, decolor(str));
-					log(time(), fromUser(userName), delink(str));
-				});
-				ppplz.lastScore(msg.from, mode, format);
-			} else if (msgparts[0] === '!watch' || msgparts[0] === '!w') {
-				log(time(), color('!watch command received from ', 3) + color(msg.from, 7));
-				if (msgparts[1] === 'user' && msgparts[2] && msg.from === user) {
-					userName = msgparts[2];
-					msgparts.splice(1, 2);
-				} else {
-					userName = msg.from;
-				}
-				if (msgparts[1] === 'tries') {
-					tries = true;
-					msgparts[1] = msgparts[2];
-				}
-				if (msgparts[1] === 'osu' || msgparts[1] === 'osu!') {
-					mode = ppplz.Modes.osu;
-					modeName = 'osu!';
-				} else if (msgparts[1] === 'taiko' || msgparts[1] === 'Taiko') {
-					mode = ppplz.Modes.taiko;
-					modeName = 'Taiko';
-				} else if (msgparts[1] === 'ctb' || msgparts[1] === 'CtB') {
-					mode = ppplz.Modes.CtB;
-					modeName = 'CtB';
-				} else if (msgparts[1] === 'osumania' || msgparts[1] === 'osu!mania') {
-					mode = ppplz.Modes.osumania;
-					modeName = 'osu!mania';
-				} else {
-					mode = ppplz.Modes.osu;
-					modeName = 'osu!';
-				}
-				format = ppplzFormat(ppplz, {
-					color: true,
-					fails: tries,
-					link: true
-				}, function (str) {
-					irc.send(userName, decolor(str));
-					log(time(), fromUser(userName), delink(str));
-				});
-				if (ppplz.watching(msg.from)) {
-					irc.send(userName, 'Error, already watching.');
-					log(time(), fromUser(userName), color('Error, already watching', 1));
-				} else {
-					ppplz.watch(userName, mode, function () {
-						if (msg.from === user) {
-							refreshOnline();
+				switch (msgparts[0].toLowerCase()) {
+					case '!ppplz':
+					case '!pp':
+						log(time(), color('!ppplz command received from ', 3) + color(msg.from, 7));
+						if (msgparts[1].toLowerCase() === 'user' && msgparts[2] && msg.from === user) {
+							userName = msgparts[2];
+							msgparts.splice(1, 2);
+						} else {
+							userName = msg.from;
 						}
-						format.apply(undefined, arguments);
-					});
-					irc.send(userName, 'Watching. Waiting for ' + modeName + ' plays...');
-					log(time(), fromUser(userName), color('Watching. Waiting for ' + modeName + ' plays...', 3));
+						switch (msgparts[1].toLowerCase()) {
+							case 'osu':
+							case 'osu!':
+								mode = ppplz.Modes.osu;
+								break;
+							case 'taiko':
+								mode = ppplz.Modes.taiko;
+								break;
+							case 'ctb':
+								mode = ppplz.Modes.CtB;
+								break;
+							case 'osumania':
+							case 'osu!mania':
+								mode = ppplz.Modes.osumania;
+								break;
+							default:
+								mode = ppplz.Modes.osu;
+						}
+						format = ppplzFormat(ppplz, {
+							color: true,
+							filter: 'tries',
+							link: true
+						}, function (str) {
+							irc.send(userName, decolor(str));
+							log(time(), fromUser(userName), delink(str));
+						});
+						ppplz.lastScore(msg.from, mode, format);
+						break;
+					case '!watch':
+					case '!w':
+						log(time(), color('!watch command received from ', 3) + color(msg.from, 7));
+						if (msgparts[1].toLowerCase() === 'user' && msgparts[2] && msg.from === user) {
+							userName = msgparts[2];
+							msgparts.splice(1, 2);
+						} else {
+							userName = msg.from;
+						}
+						switch (msgparts[1].toLowerCase()) {
+							case 'tries':
+								filter = 'tries';
+								msgparts[1] = msgparts[2];
+								break;
+							case 'plays':
+								msgparts[1] = msgparts[2];
+								break;
+							case 'pbs':
+								filter = 'pbs';
+								msgparts[1] = msgparts[2];
+								break;
+						}
+						switch (msgparts[1].toLowerCase()) {
+							case 'osu':
+							case 'osu!':
+								mode = ppplz.Modes.osu;
+								modeName = 'osu!';
+								break;
+							case 'taiko':
+								mode = ppplz.Modes.taiko;
+								modeName = 'Taiko!';
+								break;
+							case 'ctb':
+								mode = ppplz.Modes.CtB;
+								modeName = 'CtB';
+								break;
+							case 'osumania':
+							case 'osu!mania':
+								mode = ppplz.Modes.osumania;
+								modeName = 'osu!mania';
+								break;
+							default:
+								mode = ppplz.Modes.osu;
+								modeName = 'osu!';
+						}
+						format = ppplzFormat(ppplz, {
+							color: true,
+							filter: filter,
+							link: true
+						}, function (str) {
+							irc.send(userName, decolor(str));
+							log(time(), fromUser(userName), delink(str));
+						});
+						if (ppplz.watching(msg.from)) {
+							irc.send(userName, 'Error, already watching.');
+							log(time(), fromUser(userName), color('Error, already watching', 1));
+						} else {
+							ppplz.watch(userName, mode, function () {
+								if (msg.from === user) {
+									refreshOnline();
+								}
+								format.apply(undefined, arguments);
+							});
+							irc.send(userName, 'Watching. Waiting for ' + modeName + ' plays...');
+							log(time(), fromUser(userName), color('Watching. Waiting for ' + modeName + ' plays...', 3));
+						}
+						break;
+					case '!unwatch':
+					case '!uw':
+						log(time(), color('!unwatch command received from ', 3) + color(msg.from, 7));
+						if (msgparts[1].toLowerCase() === 'all' && msg.from === user) {
+							ppplz.unwatch();
+							irc.send(msg.from, 'Will stop watching everybody...');
+							log(time(), fromUser(msg.from), color('Will stop watching everybody...', 3));
+						} else if (msgparts[1].toLowerCase() === 'user' && msgparts[2] && msg.from === user) {
+							ppplz.unwatch(msgparts[2]);
+							irc.send(msg.from, 'Will stop watching ' + msgparts[2] + '...');
+							log(time(), fromUser(msg.from), color('Will stop watching ', 3) + color(msgparts[2], 7) + color('...', 3));
+						} else {
+							ppplz.unwatch(msg.from);
+							irc.send(msg.from, 'Will stop watching...');
+							log(time(), fromUser(msg.from), color('Will stop watching...', 3));
+						}
+						break;
+					case '!watching':
+						watching = ppplz.watching();
+						log(time(), color('!watching command received from ', 3) + color(msg.from, 7));
+						if (msgparts[1].toLowerCase() === 'names' && msg.from === user) {
+							watching = formatWatching(watching);
+							irc.send(msg.from, decolor(watching));
+							log(time(), fromUser(msg.from), delink(watching));
+						} else {
+							irc.send(msg.from, watching.length + ' people are using !watch right now.');
+							log(time(), fromUser(msg.from), color(watching.length, 7) + color(' people are using !watch right now.', 3));
+						}
+						break;
+					case '!status':
+					case '!s':
+						log(time(), color('!status command received from ', 3) + color(msg.from, 7));
+						if (msgparts[1].toLowerCase() === 'set' && msgparts[2] && msg.from === user) {
+							switch (msgparts[2]) {
+								case 'offline':
+									timeoutStatus('offline');
+									break;
+								case 'away':
+									timeoutStatus('away', 'offline');
+									break;
+								default:
+									refreshOnline(msgparts[2]);
+							}
+							if (msgparts[3]) {
+								onlineMsg = msgparts.slice(3).join(' ');
+							}
+							irc.send(msg.from, 'Status set to "' + onlineStatus + '", Message set to "' + onlineMsg + '"');
+							log(time(), fromUser(msg.from), color('Status set to "', 3) + color(onlineStatus, 7) + color('", Message set to "', 3) + color(onlineMsg, 7) + color('"', 3));
+						} else if (msgparts[1].toLowerCase() === 'get' && msg.from === user) {
+							irc.send(msg.from, 'Status is "' + onlineStatus + '", Message is "' + onlineMsg + '"');
+							log(time(), fromUser(msg.from), color('Status is "', 3) + color(onlineStatus, 7) + color('", Message is "', 3) + color(onlineMsg, 7) + color('"', 3));
+						} else {
+							if (onlineStatus === 'away') {
+								irc.send(msg.from, 'I\'m online, real ' + user + ' is too, but he is probably doing some other Stuff.' + onlineStatus + ': ' + onlineMsg);
+								log(time(), fromUser(msg.from), color('I\'m online, real ', 3) + color(user, 7) + color(' is too, but he is probably doing some other Stuff. ', 3) + color(onlineStatus, 7) + color(': ', 3) + color(onlineMsg, 7));
+							} else if (onlineStatus === 'offline') {
+								irc.send(msg.from, 'I\'m online, but my non-robot version is not. If you want to talk, check back later.');
+								log(time(), fromUser(msg.from), color('I\'m online, but my non-robot version is not. If you want to talk, check back later.', 3));
+							} else {
+								irc.send(msg.from, 'I\'m online, real ' + user + ' is too. ' + onlineStatus + ': ' + onlineMsg);
+								log(time(), fromUser(msg.from), color('I\'m online, real ', 3) + color(user, 7) + color(' is too. ', 3) + color(onlineStatus, 7) + color(': ', 3) + color(onlineMsg, 7));
+							}
+						}
+						break;
+					case '!help':
+					case '!h':
+						log(time(), color('!help command received from ', 3) + color(msg.from, 7));
+						irc.send(msg.from, 'Need help? The official reddit thread of this bot is [http://www.reddit.com/r/osugame/comments/2f74bw/i_wrote_an_osu_pp_bot_early_beta/ here].');
+						log(time(), fromUser(msg.from), color('Need help? The official reddit thread of this bot is ', 3) + color('here', 7) + color('.', 3));
+						break;
+					default:
+						log(time(), color('invalid command received from ', 3) + color(msg.from, 7));
+						irc.send(msg.from, 'Invalid command. See !help.');
+						log(time(), fromUser(msg.from), color('Invalid command. See !help.', 3));
+						break;
 				}
-			} else if (msgparts[0] === '!unwatch' || msgparts[0] === '!uw') {
-				log(time(), color('!unwatch command received from ', 3) + color(msg.from, 7));
-				if (msgparts[1] === 'all' && msg.from === user) {
-					ppplz.unwatch();
-					irc.send(msg.from, 'Will stop watching everybody...');
-					log(time(), fromUser(msg.from), color('Will stop watching everybody...', 3));
-				} else if (msgparts[1] === 'user' && msgparts[2] && msg.from === user) {
-					ppplz.unwatch(msgparts[2]);
-					irc.send(msg.from, 'Will stop watching ' + msgparts[2] + '...');
-					log(time(), fromUser(msg.from), color('Will stop watching ', 3) + color(msgparts[2], 7) + color('...', 3));
-				} else {
-					ppplz.unwatch(msg.from);
-					irc.send(msg.from, 'Will stop watching...');
-					log(time(), fromUser(msg.from), color('Will stop watching...', 3));
-				}
-			} else if (msgparts[0] === '!watching') {
-				watching = ppplz.watching();
-				log(time(), color('!watching command received from ', 3) + color(msg.from, 7));
-				if (msgparts[1] === 'names' && msg.from === user) {
-					watching = formatWatching(watching);
-					irc.send(msg.from, decolor(watching));
-					log(time(), fromUser(msg.from), delink(watching));
-				} else {
-					irc.send(msg.from, watching.length + ' people are using !watch right now.');
-					log(time(), fromUser(msg.from), color(watching.length, 7) + color(' people are using !watch right now.', 3));
-				}
-			} else if (msgparts[0] === '!status' || msgparts[0] === '!s') {
-				log(time(), color('!status command received from ', 3) + color(msg.from, 7));
-				if (msgparts[1] === 'set' && msgparts[2] && msg.from === user) {
-					onlineStatus = msgparts[2];
-					if (msgparts[3]) {
-						onlineMsg = msgparts.slice(3).join(' ');
-					}
-					irc.send(msg.from, 'Status set to "' + onlineStatus + '", Message set to "' + onlineMsg + '"');
-					log(time(), fromUser(msg.from), color('Status set to ', 3) + color(onlineStatus, 7) + color(', Message set to ', 3) + color(onlineMsg, 7));
-				} else if (msgparts[1] === 'get' && msg.from === user) {
-					irc.send(msg.from, 'Status is "' + onlineStatus + '", Message is "' + onlineMsg + '"');
-					log(time(), fromUser(msg.from), color('Status is ', 3) + color(onlineStatus, 7) + color(', Message is ', 3) + color(onlineMsg, 7));
-				} else {
-					if (onlineStatus === 'away') {
-						irc.send(msg.from, 'I\'m online, real ' + user + ' is too, but he is probably doing some other Stuff.' + onlineStatus + ': ' + onlineMsg);
-						log(time(), fromUser(msg.from), color('I\'m online, real ', 3) + color(user, 7) + color(' is too, but he is probably doing some other Stuff. ', 3) + color(onlineStatus, 7) + color(': ', 3) + color(onlineMsg, 7));
-					} else if (onlineStatus === 'offline') {
-						irc.send(msg.from, 'I\'m online, but my non-robot version is not. If you want to talk, check back later.');
-						log(time(), fromUser(msg.from), color('I\'m online, but my non-robot version is not. If you want to talk, check back later.', 3));
-					} else {
-						irc.send(msg.from, 'I\'m online, real ' + user + ' is too. Status: ' + onlineStatus + ': ' + onlineMsg);
-						log(time(), fromUser(msg.from), color('I\'m online, real ', 3) + color(user, 7) + color(' is too. Status: ', 3) + color(onlineStatus, 7) + color(': ', 3) + color(onlineMsg, 7));
-					}
-				}
-			} else if (msgparts[0] === '!help' || msgparts[0] === '!h') {
-				log(time(), color('!help command received from ', 3) + color(msg.from, 7));
-				irc.send(msg.from, 'Need help? The official reddit thread of this bot is [http://www.reddit.com/r/osugame/comments/2f74bw/i_wrote_an_osu_pp_bot_early_beta/ here].');
-				log(time(), fromUser(msg.from), color('Need help? The official reddit thread of this bot is ', 3) + color('here', 7) + color('.', 3));
 			}
 		});
 	},
