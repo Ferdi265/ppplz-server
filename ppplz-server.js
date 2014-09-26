@@ -332,8 +332,8 @@ var //Requires
 					case '!help':
 					case '!h':
 						log(time(), color('!help command received from ', 3) + color(msg.from, 7));
-						irc.send(msg.from, 'Need help? The official reddit thread of this bot is [http://www.reddit.com/r/osugame/comments/2f74bw/i_wrote_an_osu_pp_bot_early_beta/ here].');
-						log(time(), fromUser(msg.from), color('Need help? The official reddit thread of this bot is ', 3) + color('here', 7) + color('.', 3));
+						irc.send(msg.from, 'Need help? The official doc page of this bot is [http://ferdi265.github.io/project/osu/ppplz/2014/09/26/osu-ppplz-bot-back-up.html here].');
+						log(time(), fromUser(msg.from), color('Need help? The official doc page of this bot is ', 3) + color('here', 7) + color('.', 3));
 						break;
 					default:
 						log(time(), color('invalid command received from ', 3) + color(msg.from, 7));
