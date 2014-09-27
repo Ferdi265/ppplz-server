@@ -125,7 +125,7 @@ var //Requires
 				}
 				if (args.length > 0) {
 					onlineTimeout = setTimeout(function () {
-						refreshStatus.apply(undefined, args);
+						timeoutStatus.apply(undefined, args);
 					}, 1000 * 60 * 15);
 				}
 			},
@@ -207,7 +207,7 @@ var //Requires
 						} else {
 							userName = msg.from;
 						}
-						switch (msgparts[1].toLowerCase()) {
+						switch ((msgparts[1] || '').toLowerCase()) {
 							case 'tries':
 								filter = 'tries';
 								msgparts[1] = msgparts[2];
@@ -220,7 +220,7 @@ var //Requires
 								msgparts[1] = msgparts[2];
 								break;
 						}
-						switch (msgparts[1].toLowerCase()) {
+						switch ((msgparts[1] || '').toLowerCase()) {
 							case 'osu':
 							case 'osu!':
 								mode = ppplz.Modes.osu;
