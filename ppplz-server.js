@@ -185,8 +185,13 @@ var //Requires
 							case 'osu!mania':
 								mode = ppplz.Modes.osumania;
 								break;
+							case '':
+								mode = ppplz.Modes.osu;
+								break;
 							default:
 								mode = ppplz.Modes.osu;
+								irc.send(userName, 'Invalid gamemode name');
+								log(time(), fromUser(userName), 'Invalid gamemode name');
 						}
 						format = ppplzFormat(ppplz, {
 							color: true,
@@ -239,9 +244,15 @@ var //Requires
 								mode = ppplz.Modes.osumania;
 								modeName = 'osu!mania';
 								break;
+							case '':
+								mode = ppplz.Modes.osu;
+								modeName = 'osu!';
+								break;
 							default:
 								mode = ppplz.Modes.osu;
 								modeName = 'osu!';
+								irc.send(userName, 'Invalid gamemode name');
+								log(time(), fromUser(userName), 'Invalid gamemode name');
 						}
 						format = ppplzFormat(ppplz, {
 							color: true,
