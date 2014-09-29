@@ -164,13 +164,13 @@ var //Requires
 					case '!ppplz':
 					case '!pp':
 						log(time(), color('!ppplz command received from ', 3) + color(msg.from, 7));
-						if (msgparts[1].toLowerCase() === 'user' && msgparts[2] && msg.from === user) {
+						if (msgparts[1] && msgparts[1].toLowerCase() === 'user' && msgparts[2] && msg.from === user) {
 							userName = msgparts[2];
 							msgparts.splice(1, 2);
 						} else {
 							userName = msg.from;
 						}
-						switch (msgparts[1].toLowerCase()) {
+						switch ((msgparts[1] || '').toLowerCase()) {
 							case 'osu':
 							case 'osu!':
 								mode = ppplz.Modes.osu;
@@ -201,7 +201,7 @@ var //Requires
 					case '!watch':
 					case '!w':
 						log(time(), color('!watch command received from ', 3) + color(msg.from, 7));
-						if (msgparts[1].toLowerCase() === 'user' && msgparts[2] && msg.from === user) {
+						if (msgparts[1] && msgparts[1].toLowerCase() === 'user' && msgparts[2] && msg.from === user) {
 							userName = msgparts[2];
 							msgparts.splice(1, 2);
 						} else {
