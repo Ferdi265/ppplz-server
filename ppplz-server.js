@@ -1,7 +1,7 @@
 var //Requires
 	osuppplz = require('osu-ppplz'),
 	ppplzFormat = require('ppplz-format'),
-	osuirc = require('osu-irc'),
+	osuirc = require('osu-sic-irc'),
 	fs = require('fs'),
 	argv = require('optimist').argv,
 	Color = require('colorful').Color,
@@ -137,14 +137,15 @@ var //Requires
 		irc.on('ready', function () {
 			log(time(), color('Connected to Bancho.', 3));
 		});
-		irc.on('error', function (err) {
-			if (err.cmd === 'ERR_NOSUCHNICK') {
-				log(time(), color('Error: User already offline.', 1));
-			} else {
-				log(time(), color('Fatal Error: ' + JSON.stringify(err), 1));
-				irc.stop();
-				process.exit(1);
-			}
+		irc.on('nosuchnick', function (nick) {
+			log(time(), color('Error: "' + nick + '" is already offline.', 1));
+			ppplz.unwatch(nick);
+		});
+		irc.on('end', function () {
+			log(time(), color('Error: SIC process terminated.', 1));
+		});
+		irc.on('respawned', function () {
+			log(time(), color('SIC process respawned.', 3));
 		});
 		irc.on('message', function (msg) {
 			var format,
