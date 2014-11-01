@@ -16,7 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "osu-ppplz": ">=1.4.0",
-    "osu-irc": ">=1.0",
+    "osu-sic-irc": "*",
     "optimist": ">=0.6.1",
     "colorful": ">=2.1",
     "ppplz-format": ">=1.4.2"
