@@ -359,7 +359,6 @@ var //Requires
 	//Variables
 	logfile;
 
-console.log(argv);
 if (argv['clear-log']) {
 	logfile = fs.createWriteStream('./log.txt', {
 		flags: 'w'
