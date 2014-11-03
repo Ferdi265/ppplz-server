@@ -138,13 +138,13 @@ var //Requires
 			log(time(), color('Connected to Bancho.', 3));
 		});
 		irc.on('nosuchnick', function (nick) {
-			log(time(), color('Error: "' + nick + '" is already offline.', 1));
+			log(time(), color('Warn: "' + nick + '" is already offline.', 1));
 			ppplz.unwatch(nick);
 		});
 		irc.on('end', function () {
 			log(time(), color('Error: SIC process terminated.', 1));
 		});
-		irc.on('respawned', function () {
+		irc.on('respawn', function () {
 			log(time(), color('SIC process respawned.', 3));
 		});
 		irc.on('message', function (msg) {
