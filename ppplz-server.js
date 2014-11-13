@@ -363,7 +363,7 @@ if (argv['clear-log']) {
 	logfile = fs.createWriteStream('./log.txt', {
 		flags: 'w'
 	});
-} else if (argv['log'] !== false) {
+} else if (argv.log !== false) {
 	logfile = fs.createWriteStream('./log.txt', {
 		flags: 'a'
 	});
